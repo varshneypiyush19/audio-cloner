@@ -56,7 +56,9 @@ const VoiceCloneApp = () => {
     }
   };
 
-  const handleTextInput = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleTextInput = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const text = event.target.value;
     setError("");
 
@@ -68,127 +70,6 @@ const VoiceCloneApp = () => {
     setInputText(text);
   };
 
-  // const handleGenerate = async () => {
-  //   if (!uploadedFile) {
-  //     setError("Please upload a voice file first.");
-  //     return;
-  //   }
-
-  //   if (!inputText.trim()) {
-  //     setError("Please enter some text to convert.");
-  //     return;
-  //   }
-
-  //   try {
-  //     setIsProcessing(true);
-
-  //     // Step 1: Create a voice project
-  //     const voiceResponse = await fetch(
-  //       "https://app.resemble.ai/api/v2/projects",
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           Authorization: `Token token=${
-  //             import.meta.env.VITE_RESEMBLE_API_KEY
-  //           }`,
-  //           "Content-Type": "application/json",
-  //         },
-  //         body: JSON.stringify({
-  //           name: `Voice_${Date.now()}`,
-  //           description: "Generated voice project",
-  //         }),
-  //       }
-  //     );
-
-  //     const projectData = await voiceResponse.json();
-  //     if (!voiceResponse.ok) {
-  //       throw new Error(
-  //         projectData.message || "Failed to create voice project"
-  //       );
-  //     }
-  //     const { uuid } = projectData.item;
-
-  //     const voicesResponse = await fetch(
-  //       `https://app.resemble.ai/api/v2/voices?page=1&page_size=100`,
-  //       {
-  //         method: "GET",
-  //         headers: {
-  //           Authorization: `Bearer ${import.meta.env.VITE_RESEMBLE_API_KEY}`,
-  //         },
-  //       }
-  //     );
-  //     const voicesData = await voicesResponse.json();
-  //     console.log("voicesData", voicesData);
-
-  //     // Step 2: Upload voice clip to the project
-  //     const clipResponse = await fetch(
-  //       `https://app.resemble.ai/api/v2/projects/${uuid}/clips`,
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           Authorization: `Bearer ${import.meta.env.VITE_RESEMBLE_API_KEY}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //         body: JSON.stringify({
-  //           name: `Sample_${Date.now()}`,
-  //           audio_url: uploadedFile,
-  //           body: inputText,
-  //           voice_uuid: "1dcf0222",
-  //         }),
-  //       }
-  //     );
-  //     console.log("clipResponse", clipResponse);
-  //     const clipData = await clipResponse.json();
-  //     console.log("clipData", clipData);
-  //     if (!clipResponse.ok) {
-  //       throw new Error(clipData.message || "Failed to upload voice clip");
-  //     }
-
-  //     // Step 3: Generate speech with the created voice
-  //     if (!clipResponse.ok) {
-  //       throw new Error(clipData.message || "Failed to generate speech");
-  //     }
-
-  //     // Poll for the status of the generated audio
-  //     let audioUrl = clipData.item.audio_src;
-  //     const maxAttempts = 10;
-  //     let attempts = 0;
-
-  //     while (!audioUrl && attempts < maxAttempts) {
-  //       const statusResponse = await fetch(
-  //         `https://app.resemble.ai/api/v2/clips/${clipData.item.id}`,
-  //         {
-  //           headers: {
-  //             Authorization: `Token token=${
-  //               import.meta.env.VITE_RESEMBLE_API_KEY
-  //             }`,
-  //           },
-  //         }
-  //       );
-
-  //       const statusData = await statusResponse.json();
-
-  //       if (statusData.status === "complete") {
-  //         audioUrl = statusData.audio_url;
-  //         break;
-  //       }
-
-  //       attempts++;
-  //       await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds between polls
-  //     }
-
-  //     if (!audioUrl) {
-  //       throw new Error("Timeout waiting for audio generation");
-  //     }
-
-  //     setGeneratedAudio(audioUrl);
-  //   } catch (err) {
-  //     setError("Failed to generate voice. Please try again.");
-  //     console.error("Generation error:", err);
-  //   } finally {
-  //     setIsProcessing(false);
-  //   }
-  // };
   const handleGenerate = async () => {
     if (!uploadedFile) {
       setError("Please upload a voice file first.");

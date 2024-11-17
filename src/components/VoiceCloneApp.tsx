@@ -90,9 +90,7 @@ const VoiceCloneApp = () => {
         {
           method: "POST",
           headers: {
-            Authorization: `Token token=${
-              import.meta.env.VITE_RESEMBLE_API_KEY
-            }`,
+            Authorization: `Bearer ${import.meta.env.VITE_RESEMBLE_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -133,45 +131,16 @@ const VoiceCloneApp = () => {
         throw new Error(clipData.message || "Failed to upload voice clip");
       }
 
-      // Step 3: Poll for the status of the generated audio
-      let audioUrl = clipData.item.audio_src;
-      const maxAttempts = 10;
-      let attempts = 0;
+      // Store the API source URL for playback
+      const audioSourceUrl = clipData.item.audio_src;
+      setGeneratedAudio(audioSourceUrl);
 
-      while (!audioUrl && attempts < maxAttempts) {
-        const statusResponse = await fetch(
-          `https://app.resemble.ai/api/v2/clips/${clipData.item.id}`,
-          {
-            headers: {
-              Authorization: `Token token=${
-                import.meta.env.VITE_RESEMBLE_API_KEY
-              }`,
-            },
-          }
-        );
-
-        const statusData = await statusResponse.json();
-
-        if (statusData.status === "complete") {
-          audioUrl = statusData.audio_url;
-          break;
-        }
-
-        attempts++;
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds between polls
-      }
-
-      if (!audioUrl) {
-        throw new Error("Timeout waiting for audio generation");
-      }
-
-      // Step 4: Fetch audio file from audioUrl
-      const audioResponse = await fetch(audioUrl);
+      // Upload to Supabase for storage (but don't use this URL for playback)
+      const audioResponse = await fetch(audioSourceUrl);
       const audioBlob = await audioResponse.blob();
 
-      // Step 5: Upload audio file to Supabase
-      const audioFileName = `${Date.now()}_generated_audio.mp3`; // Customize file name as needed
-      const { data, error: uploadError } = await supabase.storage
+      const audioFileName = `${Date.now()}_generated_audio.mp3`;
+      const { error: uploadError } = await supabase.storage
         .from("voices")
         .upload(audioFileName, audioBlob, {
           contentType: audioBlob.type,
@@ -181,11 +150,7 @@ const VoiceCloneApp = () => {
         throw new Error("Failed to upload generated audio to Supabase");
       }
 
-      // Step 6: Set generated audio URL as state
-      const supabaseAudioUrl = `https://bytpjvxugcnuzpcokria.supabase.co/storage/v1/object/public/${data?.fullPath}`;
-      setGeneratedAudio(supabaseAudioUrl);
-
-      console.log("Generated audio uploaded to Supabase:", supabaseAudioUrl);
+      console.log("Generated audio stored in Supabase");
     } catch (err) {
       setError("Failed to generate voice. Please try again.");
       console.error("Generation error:", err);
@@ -194,11 +159,39 @@ const VoiceCloneApp = () => {
     }
   };
 
-  const playAudio = (generatedAudio: string) => {
-    if (audioRef.current) {
-      audioRef.current.src = generatedAudio;
-      audioRef.current.play();
+  const playAudio = async (generatedAudio: string) => {
+    if (!audioRef.current) return;
+
+    try {
+      // Check if the URL is valid
+      if (!generatedAudio) {
+        throw new Error("No audio URL provided");
+      }
+
+      // Try to load the audio first
+      const response = await fetch(generatedAudio);
+      if (!response.ok) {
+        throw new Error("Failed to load audio file");
+      }
+
+      const blob = await response.blob();
+      const audioUrl = URL.createObjectURL(blob);
+
+      audioRef.current.src = audioUrl;
+
+      // Add error handling for the audio element
+      audioRef.current.onerror = (e) => {
+        console.error("Audio playback error:", e);
+        setError("Failed to play audio. Please try again.");
+        setIsPlaying(false);
+      };
+
+      await audioRef.current.play();
       setIsPlaying(true);
+    } catch (err) {
+      console.error("Audio playback error:", err);
+      setError("Failed to play audio. Please try again.");
+      setIsPlaying(false);
     }
   };
 
